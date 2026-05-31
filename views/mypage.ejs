@@ -1,0 +1,206 @@
+<%- include('partials/header') %>
+
+<div class="dashboard-header">
+    <h2>👤 마이페이지</h2>
+    <p>내가 등록한 심부름과 매칭 상태를 관리합니다.</p>
+</div>
+
+<div class="errand-grid" id="my-errands">
+    <!-- 비동기로 로드됨 -->
+</div>
+
+<div class="dashboard-header" style="margin-top: 4rem;">
+    <h2>🤝 내가 신청한 심부름</h2>
+    <p>도움을 주기로 신청한 심부름의 진행 상태입니다.</p>
+</div>
+
+<div class="errand-grid" id="applied-errands">
+    <!-- 비동기로 로드됨 -->
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+            location.href = '/login';
+            return;
+        }
+
+        // 1. 내가 등록한 심부름 불러오기 (기존 로직 유지)
+        await loadMyErrands(token);
+        
+        // 2. 내가 신청한 심부름 불러오기 (신규 로직)
+        await loadAppliedErrands(token);
+    });
+
+    async function loadMyErrands(token) {
+        try {
+            const response = await fetch('/api/errands/my', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const errands = await response.json();
+            const grid = document.getElementById('my-errands');
+            grid.innerHTML = '';
+
+            if (errands.length === 0) {
+                grid.innerHTML = '<p>등록한 심부름이 없습니다.</p>';
+                return;
+            }
+
+            errands.forEach(errand => {
+                const card = document.createElement('div');
+                card.className = 'errand-card';
+                card.onclick = (e) => {
+                    if(e.target.tagName !== 'BUTTON') location.href = `/errands/${errand._id}`;
+                };
+                card.style.cursor = 'pointer';
+                
+                let applicantsHTML = '';
+                let actionButtons = '';
+
+                if (errand.status === 'PENDING') {
+                    if (errand.applicants.length > 0) {
+                        applicantsHTML = '<div style="margin-top: 1rem; border-top: 1px solid #eee; padding-top: 1rem;"><strong>신청자 목록:</strong><ul style="padding-left: 1.2rem; margin-top: 0.5rem;">';
+                        errand.applicants.forEach(app => {
+                            applicantsHTML += `
+                                <li style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>${app.userId.email} (매너: ${app.userId.mannerScore})</span>
+                                    <div>
+                                        <button onclick="handleHelper('${errand._id}', '${app.userId._id}', 'accept')" style="background:#2ecc71; border:none; color:white; padding:3px 8px; border-radius:4px; cursor:pointer;">수락</button>
+                                        <button onclick="handleHelper('${errand._id}', '${app.userId._id}', 'reject')" style="background:#e74c3c; border:none; color:white; padding:3px 8px; border-radius:4px; cursor:pointer;">거절</button>
+                                    </div>
+                                </li>
+                            `;
+                        });
+                        applicantsHTML += '</ul></div>';
+                    } else {
+                        applicantsHTML = '<p style="font-size: 0.8rem; color: #7f8c8d; margin-top: 1rem;">아직 신청자가 없습니다.</p>';
+                    }
+                } else if (errand.status === 'MATCHED') {
+                    applicantsHTML = `
+                        <p style="margin-top: 1rem; color: #27ae60;"><strong>매칭 완료:</strong> ${errand.helperId ? errand.helperId.email : '헬퍼'}님</p>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                            <button onclick="location.href='/chat/${errand._id}'" style="background:#3498db; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">채팅하기</button>
+                            <button onclick="updateStatus('${errand._id}', 'complete')" style="background:#2ecc71; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">완료</button>
+                            <button onclick="updateStatus('${errand._id}', 'fail')" style="background:#e67e22; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">중단/실패</button>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <span class="status-badge status-${errand.status.toLowerCase()}">${errand.status}</span>
+                    <h3>${errand.title}</h3>
+                    <span class="category">#${errand.category} | 보상: ${errand.reward.toLocaleString()}원</span>
+                    <p>${errand.description.substring(0, 50)}${errand.description.length > 50 ? '...' : ''}</p>
+                    ${applicantsHTML}
+                    <div style="margin-top: 1rem;">
+                        <button onclick="deleteErrand('${errand._id}')" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-size: 0.8rem; text-decoration:underline;">삭제하기</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function updateStatus(id, action) {
+        const token = localStorage.getItem('jwtToken');
+        if (!confirm(`심부름을 ${action === 'complete' ? '완료' : '중단'} 처리하시겠습니까?`)) return;
+        try {
+            const response = await fetch(`/api/errands/${id}/${action}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            alert(data.message);
+            location.reload();
+        } catch (error) {
+            alert('오류 발생');
+        }
+    }
+
+    async function loadAppliedErrands(token) {
+        try {
+            const response = await fetch('/api/errands/applied', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const errands = await response.json();
+            const grid = document.getElementById('applied-errands');
+            grid.innerHTML = '';
+
+            if (errands.length === 0) {
+                grid.innerHTML = '<p>신청한 심부름이 없습니다.</p>';
+                return;
+            }
+
+            errands.forEach(errand => {
+                const card = document.createElement('div');
+                card.className = 'errand-card';
+                card.onclick = (e) => {
+                    if(e.target.tagName !== 'BUTTON') location.href = `/errands/${errand._id}`;
+                };
+                card.style.cursor = 'pointer';
+
+                let chatButton = '';
+                if (errand.status === 'MATCHED') {
+                    chatButton = `<button onclick="location.href='/chat/${errand._id}'" style="background:#3498db; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; margin-top: 0.5rem;">채팅하기</button>`;
+                }
+
+                card.innerHTML = `
+                    <span class="status-badge status-${errand.status.toLowerCase()}">${errand.status}</span>
+                    <h3>${errand.title}</h3>
+                    <span class="category">#${errand.category} | 요청자: ${errand.requesterId.email}</span>
+                    <p>${errand.description.substring(0, 50)}${errand.description.length > 50 ? '...' : ''}</p>
+                    <div style="margin-top: 1rem; font-size: 0.9rem; color: #2c3e50;">
+                        <strong>보상:</strong> ${errand.reward.toLocaleString()}원
+                    </div>
+                    ${chatButton}
+                `;
+                grid.appendChild(card);
+            });
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async function handleHelper(errandId, helperUserId, action) {
+        const token = localStorage.getItem('jwtToken');
+        if (!confirm(`${action === 'accept' ? '수락' : '거절'}하시겠습니까?`)) return;
+
+        try {
+            const response = await fetch(`/api/errands/${errandId}/${action}`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ helperUserId })
+            });
+            const data = await response.json();
+            alert(data.message);
+            location.reload();
+        } catch (error) {
+            alert('오류가 발생했습니다.');
+        }
+    }
+
+    async function deleteErrand(id) {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+        const token = localStorage.getItem('jwtToken');
+        try {
+            const response = await fetch(`/api/errands/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                alert('삭제되었습니다.');
+                location.reload();
+            }
+        } catch (error) {
+            alert('오류 발생');
+        }
+    }
+</script>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,102 @@
+<%- include('partials/header') %>
+
+<section class="request-form-card" style="max-width: 400px; margin: 4rem auto;">
+    <h2 id="signup-title">✨ 회원가입</h2>
+    
+    <!-- 1단계: 정보 입력 -->
+    <div id="step-1">
+        <form id="signup-form">
+            <div class="form-group">
+                <label for="email">학교 이메일</label>
+                <input type="email" id="email" placeholder="example@office.skhu.ac.kr" required>
+                <small style="color: #7f8c8d;">@office.skhu.ac.kr 도메인만 가능합니다.</small>
+            </div>
+            <div class="form-group">
+                <label for="password">비밀번호</label>
+                <input type="password" id="password" placeholder="6자 이상 입력" required minlength="6">
+            </div>
+            <button type="submit" class="btn-submit">인증 메일 발송</button>
+        </form>
+    </div>
+
+    <!-- 2단계: 인증 코드 입력 -->
+    <div id="step-2" style="display: none;">
+        <p style="font-size: 0.9rem; color: #2c3e50; margin-bottom: 1.5rem;">
+            입력하신 이메일로 인증 코드가 발송되었습니다. 메일함을 확인해주세요.
+        </p>
+        <form id="verify-form">
+            <div class="form-group">
+                <label for="code">인증 코드 (6자리)</label>
+                <input type="text" id="code" placeholder="123456" required maxlength="6">
+            </div>
+            <button type="submit" class="btn-submit">인증 완료 및 가입</button>
+        </form>
+    </div>
+
+    <p style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem;">
+        이미 계정이 있으신가요? <a href="/login" style="color: var(--primary-color); text-decoration: none;">로그인</a>
+    </p>
+</section>
+
+<script>
+    const signupForm = document.getElementById('signup-form');
+    const verifyForm = document.getElementById('verify-form');
+    let registeredEmail = '';
+
+    signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        if (!email.endsWith('@office.skhu.ac.kr') && !email.endsWith('@test.com')) {
+            alert('성공회대학교 메일(@office.skhu.ac.kr) 또는 테스트 메일(@test.com)만 사용 가능합니다.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(data.message);
+                registeredEmail = email;
+                document.getElementById('step-1').style.display = 'none';
+                document.getElementById('step-2').style.display = 'block';
+                document.getElementById('signup-title').innerText = '📧 이메일 인증';
+            } else {
+                alert(data.message);
+            }
+        } catch (error) {
+            alert('서버 오류가 발생했습니다.');
+        }
+    });
+
+    verifyForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const code = document.getElementById('code').value;
+
+        try {
+            const response = await fetch('/api/auth/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: registeredEmail, code })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                alert(data.message);
+                location.href = '/login';
+            } else {
+                alert(data.message);
+            }
+        } catch (error) {
+            alert('서버 오류가 발생했습니다.');
+        }
+    });
+</script>
+
+<%- include('partials/footer') %>

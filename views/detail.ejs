@@ -1,0 +1,49 @@
+<%- include('partials/header') %>
+
+<div class="dashboard-header">
+    <h2>📝 심부름 상세 정보</h2>
+    <a href="/search" style="font-size: 0.9rem; color: var(--primary-color);">목록으로 돌아가기</a>
+</div>
+
+<div class="request-form-card" id="errand-detail">
+    <p>정보를 불러오는 중...</p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const errandId = '<%= errandId %>';
+        try {
+            const response = await fetch(`/api/errands/${errandId}`);
+            const errand = await response.json();
+            
+            const detailContainer = document.getElementById('errand-detail');
+            detailContainer.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                    <div>
+                        <span class="status-badge status-${errand.status.toLowerCase()}">${errand.status}</span>
+                        <h1 style="margin-top: 0.5rem; color: var(--secondary-color);">${errand.title}</h1>
+                        <span class="category">#${errand.category} | 요청자: ${errand.requesterId.email}</span>
+                    </div>
+                    <div class="reward" style="font-size: 1.5rem;">${errand.reward.toLocaleString()}원</div>
+                </div>
+                
+                <div style="background: #f9f9f9; padding: 1.5rem; border-radius: 8px; line-height: 1.6;">
+                    <strong>상세 내용:</strong><br>
+                    ${errand.description.replace(/\n/g, '<br>')}
+                </div>
+
+                <div style="margin-top: 1.5rem; color: #7f8c8d; font-size: 0.9rem;">
+                    만료일: ${new Date(errand.expiredAt).toLocaleString()} | 등록일: ${new Date(errand.createdAt).toLocaleString()}
+                </div>
+
+                <div id="action-area" style="margin-top: 2rem;">
+                    <!-- 상태에 따라 신청 버튼 등이 보일 수 있음 -->
+                </div>
+            `;
+        } catch (error) {
+            console.error(error);
+        }
+    });
+</script>
+
+<%- include('partials/footer') %>

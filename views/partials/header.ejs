@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>캠퍼스 퀵-헬퍼 | 신뢰기반 심부름 매칭</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo" onclick="location.href='/'" style="cursor: pointer;">
+            <span style="margin-right: 10px;">🎓</span> 캠퍼스 퀵-헬퍼
+        </div>
+        <nav id="main-nav">
+            <a href="/">홈</a>
+            <a href="/search">심부름 찾기</a>
+            <span id="auth-links">
+                <a href="/login">로그인</a>
+                <a href="/signup">회원가입</a>
+            </span>
+        </nav>
+    </header>
+    <main>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('jwtToken');
+            const userEmail = localStorage.getItem('userEmail');
+            const authLinks = document.getElementById('auth-links');
+            
+            if (token) {
+                authLinks.innerHTML = `
+                    <a href="/mypage">마이페이지</a>
+                    <span style="margin-left: 1.5rem; font-size: 0.9rem; color: #bdc3c7;">${userEmail}님</span>
+                    <a href="#" onclick="logout()">로그아웃</a>
+                `;
+            }
+        });
+
+        function logout() {
+            localStorage.removeItem('jwtToken');
+            localStorage.removeItem('userEmail');
+            alert('로그아웃 되었습니다.');
+            location.href = '/';
+        }
+    </script>

@@ -1,0 +1,75 @@
+<%- include('partials/header') %>
+
+<div class="dashboard-header">
+    <h2>🔍 도움을 기다리는 심부름</h2>
+    <p>주변 친구들의 부탁을 들어주고 보상을 받아보세요.</p>
+</div>
+
+<div class="errand-grid" id="search-grid">
+    <!-- 비동기로 로드됨 -->
+    <p>심부름 목록을 불러오는 중...</p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const token = localStorage.getItem('jwtToken');
+        if (!token) {
+            alert('로그인이 필요한 서비스입니다.');
+            location.href = '/login';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/errands');
+            const errands = await response.json();
+            const grid = document.getElementById('search-grid');
+            grid.innerHTML = '';
+
+            if (errands.length === 0) {
+                grid.innerHTML = '<p>현재 등록된 심부름이 없습니다.</p>';
+                return;
+            }
+
+            errands.forEach(errand => {
+                const card = document.createElement('div');
+                card.className = 'errand-card';
+                card.style.cursor = 'pointer';
+                card.onclick = (e) => {
+                    if(e.target.tagName !== 'BUTTON') location.href = `/errands/${errand._id}`;
+                };
+                card.innerHTML = `
+                    <span class="status-badge status-pending">모집 중</span>
+                    <h3>${errand.title}</h3>
+                    <span class="category">#${errand.category} | 요청자: ${errand.requesterId.email}</span>
+                    <p>${errand.description.substring(0, 50)}${errand.description.length > 50 ? '...' : ''}</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+                        <span class="reward">${errand.reward.toLocaleString()}원</span>
+                        <button onclick="applyErrand('${errand._id}')" class="btn-submit" style="width: auto; padding: 0.5rem 1rem; margin: 0;">도움 신청하기</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (error) {
+            console.error(error);
+        }
+    });
+
+    async function applyErrand(id) {
+        const token = localStorage.getItem('jwtToken');
+        if (!confirm('정말로 이 심부름을 도와주시겠습니까?')) return;
+
+        try {
+            const response = await fetch(`/api/errands/${id}/apply`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await response.json();
+            alert(data.message);
+            if (response.ok) location.reload();
+        } catch (error) {
+            alert('오류가 발생했습니다.');
+        }
+    }
+</script>
+
+<%- include('partials/footer') %>

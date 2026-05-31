@@ -1,0 +1,55 @@
+<%- include('partials/header') %>
+
+<section class="request-form-card" style="max-width: 400px; margin: 4rem auto;">
+    <h2>🔑 로그인</h2>
+    <form id="login-form">
+        <div class="form-group">
+            <label for="email">학교 이메일</label>
+            <input type="email" id="email" placeholder="example@office.skhu.ac.kr" required>
+        </div>
+        <div class="form-group">
+            <label for="password">비밀번호</label>
+            <input type="password" id="password" placeholder="비밀번호 입력" required>
+        </div>
+        <button type="submit" class="btn-submit">로그인</button>
+    </form>
+    <p style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem;">
+        아직 계정이 없으신가요? <a href="/signup" style="color: var(--primary-color); text-decoration: none;">회원가입</a>
+    </p>
+</section>
+
+<script>
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('jwtToken', data.token);
+                localStorage.setItem('userEmail', data.email);
+
+                // 토큰 디코딩하여 ID 저장 (간단히 서버에서 준 데이터 사용)
+                const payload = JSON.parse(atob(data.token.split('.')[1]));
+                localStorage.setItem('userId', payload.id);
+
+                alert('로그인에 성공했습니다!');
+                location.href = '/';
+            }
+ else {
+                alert(data.message);
+            }
+        } catch (error) {
+            alert('서버 오류가 발생했습니다.');
+        }
+    });
+</script>
+
+<%- include('partials/footer') %>
