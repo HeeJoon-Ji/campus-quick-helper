@@ -5,6 +5,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const Errand = require('./models/Errand');
+const Message = require('./models/Message');
 
 const app = express();
 const server = http.createServer(app);
@@ -34,45 +35,47 @@ app.use('/api/errands', require('./routes/errands'));
 
 // Socket.io Logic
 io.on('connection', (socket) => {
-  // Logic here...
+  socket.on('join_room', (errandId) => socket.join(errandId));
+  socket.on('send_message', async (data) => {
+    try {
+      const newMessage = new Message({ errandId: data.errandId, senderId: data.senderId, text: data.text });
+      await newMessage.save();
+      io.to(data.errandId).emit('receive_message', { text: data.text, senderId: data.senderId, timestamp: newMessage.createdAt });
+    } catch (err) { console.error(err); }
+  });
 });
 
-// Root Route
-app.get('/', async (req, res) => {
+// MongoDB Connection
+const connectDB = async () => {
   try {
-    const errands = await Errand.find().sort({ createdAt: -1 });
-    res.render('index', { errands });
+    await mongoose.connect(MONGODB_URI);
+    console.log('Successfully connected to MongoDB Atlas');
   } catch (error) {
-    console.error('Error fetching errands:', error);
-    res.status(500).send('Internal Server Error');
+    console.error('MongoDB Error:', error.message);
   }
-});
+};
 
-// Auth Pages
+// Start Server
+const startServer = async () => {
+  await connectDB();
+  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+};
+
+// View Routes
+app.get('/', async (req, res) => {
+  const errands = await Errand.find().sort({ createdAt: -1 });
+  res.render('index', { errands });
+});
 app.get('/login', (req, res) => res.render('login'));
 app.get('/signup', (req, res) => res.render('signup'));
+app.get('/search', (req, res) => res.render('search'));
+app.get('/mypage', (req, res) => res.render('mypage'));
+app.get('/errands/:id', (req, res) => res.render('detail', { errandId: req.params.id }));
+app.get('/chat/:id', (req, res) => res.render('chat', { errandId: req.params.id }));
 
-// Export app and server separately for testing
+// Export for Render or other environments
 module.exports = { app, server };
 
-// Only start the server if this file is run directly
 if (require.main === module) {
-    const connectDB = async () => {
-      try {
-        await mongoose.connect(MONGODB_URI);
-        console.log('Successfully connected to MongoDB Atlas');
-      } catch (error) {
-        console.error('Error connecting to MongoDB Atlas:', error.message);
-        process.exit(1);
-      }
-    };
-
-    const startServer = async () => {
-      await connectDB();
-      server.listen(PORT, () => {
-        console.log(`Server is running on http://localhost:${PORT}`);
-      });
-    };
-
-    startServer();
+  startServer();
 }
