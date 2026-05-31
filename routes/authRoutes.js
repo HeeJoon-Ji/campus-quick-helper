@@ -28,14 +28,6 @@ router.post('/register', async (req, res) => {
     }
 
     await user.save();
-    
-    // 테스트용 계정(@test.com)은 즉시 인증 처리
-    if (email.endsWith('@test.com')) {
-      user.isVerified = true;
-      user.verificationCode = null;
-      await user.save();
-      return res.status(200).json({ message: '테스트 계정입니다. 인증 없이 바로 로그인 가능합니다.' });
-    }
 
     // Send Email (비동기로 실행하되 에러 로그 확인)
     try {

@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    match: [/^\S+@office\.skhu\.ac\.kr$|^\S+@test\.com$/, '성공회대학교 메일(@office.skhu.ac.kr) 또는 테스트 메일(@test.com)만 사용 가능합니다.']
+    match: [/^\S+@office\.skhu\.ac\.kr$/, '성공회대학교 메일(@office.skhu.ac.kr)만 사용 가능합니다.']
   },
   password: {
     type: String,
