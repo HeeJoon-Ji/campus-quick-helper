@@ -12,10 +12,6 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
-  mannerScore: {
-    type: Number,
-    default: 36.5
-  },
   isVerified: {
     type: Boolean,
     default: false

@@ -12,7 +12,7 @@ const { sendApplicationEmail, sendMatchEmail } = require('../utils/email');
 router.get('/', async (req, res) => {
   try {
     const errands = await Errand.find({ status: 'PENDING' })
-      .populate('requesterId', 'email mannerScore')
+      .populate('requesterId', 'email')
       .sort({ createdAt: -1 });
     res.json(errands);
   } catch (error) {
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
 router.get('/my', auth, async (req, res) => {
   try {
     const errands = await Errand.find({ requesterId: req.user.id })
-      .populate('applicants.userId', 'email mannerScore')
+      .populate('applicants.userId', 'email')
       .populate('helperId', 'email')
       .sort({ createdAt: -1 });
     res.json(errands);
@@ -148,7 +148,7 @@ router.delete('/:id', auth, async (req, res) => {
 router.get('/applied', auth, async (req, res) => {
   try {
     const errands = await Errand.find({ 'applicants.userId': req.user.id })
-      .populate('requesterId', 'email mannerScore')
+      .populate('requesterId', 'email')
       .sort({ createdAt: -1 });
     res.json(errands);
   } catch (error) {
@@ -165,8 +165,8 @@ const Message = require('../models/Message');
 router.get('/:id', async (req, res) => {
   try {
     const errand = await Errand.findById(req.params.id)
-      .populate('requesterId', 'email mannerScore')
-      .populate('helperId', 'email mannerScore');
+      .populate('requesterId', 'email')
+      .populate('helperId', 'email');
     if (!errand) return res.status(404).json({ message: 'Errand not found' });
     res.json(errand);
   } catch (error) {

@@ -64,7 +64,7 @@
                         errand.applicants.forEach(app => {
                             applicantsHTML += `
                                 <li style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
-                                    <span>${app.userId.email} (매너: ${app.userId.mannerScore})</span>
+                                    <span>${app.userId.email}</span>
                                     <div>
                                         <button onclick="handleHelper('${errand._id}', '${app.userId._id}', 'accept')" style="background:#2ecc71; border:none; color:white; padding:3px 8px; border-radius:4px; cursor:pointer;">수락</button>
                                         <button onclick="handleHelper('${errand._id}', '${app.userId._id}', 'reject')" style="background:#e74c3c; border:none; color:white; padding:3px 8px; border-radius:4px; cursor:pointer;">거절</button>
